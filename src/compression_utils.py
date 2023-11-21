@@ -3,7 +3,9 @@ from queue import *
 from dataclasses import *
 from typing import *
 from byte_utils import *
-
+"""
+ATUL VENKATESAN
+"""
 # [!] Important: This is the character code of the End Transmission Block (ETB)
 # Character -- use this constant to signal the end of a message
 ETB_CHAR = "\x17"
@@ -41,6 +43,11 @@ class HuffmanNode:
         self.zero_child = zero_child
         self.one_child = one_child
 
+    def __lt__(self, other: "HuffmanNode") -> bool:
+        if self.freq == other.freq:
+            return self.char < other.char
+        return self.freq < other.freq
+                
     def is_leaf(self) -> bool:
         '''
         Returns:
@@ -68,63 +75,124 @@ class ReusableHuffman:
                 which will be used to construct the encoding map
         '''
         self._encoding_map: dict[str, str] = dict()
+        charfreq = self.char_frequency(corpus)
+        self.trie: "HuffmanNode" = self.make_trie(charfreq)
+        self.encoding_map(self.trie, "")
+    
         
         # [!] TODO: complete construction of self._encoding_map by constructing
         # the Huffman Trie -- remember to save its root as an attribute!
+        
+    """Frequency dictionary of characters"""    
+    def char_frequency(self, str1: str) -> dict[str, int]:
+        char_freq: dict = {}
+        char_freq[ETB_CHAR] = 1
+        for i in str1:
+            if i in char_freq:
+                char_freq[i] += 1
+            else:
+                char_freq[i] = 1
+        return char_freq
+
+    """Creates a trie based on the frequency dictionary"""
+    def make_trie(self, freq: dict[str, int]) -> "HuffmanNode":
+        tree: PriorityQueue[HuffmanNode] = PriorityQueue() 
+        for key, value in freq.items():
+            node = HuffmanNode(key, value)
+            tree.put(node)
+        """Start from ETB as root and incorporate the next node from the PQ
+        """
+        # root = HuffmanNode(ETB_CHAR, 1)
+        # root.zero_child = HuffmanNode(ETB_CHAR, root.freq + tree.get().freq)
+        while tree.qsize() > 1:
+            zero_child = tree.get()
+            one_child = tree.get()
+            if zero_child.char < one_child.char: 
+                parent = HuffmanNode(zero_child.char, zero_child.freq+one_child.freq, zero_child, one_child)
+            else:
+                parent = HuffmanNode(one_child.char, zero_child.freq+one_child.freq, zero_child, one_child)
+            tree.put(parent)
+        root = tree.get()
+        return root
+    
+    """Works through the trie to create an encoding map"""
+    def encoding_map(self, root: Optional["HuffmanNode"], value: str) -> None:
+        if root is None:
+            return
+        if root.is_leaf() == True:
+            self._encoding_map[root.char] = value
+        self.encoding_map(root.zero_child, value+"0")
+        self.encoding_map(root.one_child, value+"1")         
     
     def get_encoding_map(self) -> dict[str, str]:
-        '''
-        Simple getter for the encoding map that, after the constructor is run,
-        will be a dictionary of character keys mapping to their compressed
-        bitstrings in this ReusableHuffman instance's encoding
-        
-        Example:
-            {ETB_CHAR: 10, "A": 11, "B": 0}
-            (see unit tests for more examples)
-        
-        Returns:
-            dict[str, str]:
-                A copy of this ReusableHuffman instance's encoding map
-        '''
         return copy.deepcopy(self._encoding_map)
     
     # Compression
     # ---------------------------------------------------------------------------
-    
-    def compress_message(self, message: str) -> bytes:
-        '''
-        Compresses the given String message / text corpus into its Huffman-coded
-        bitstring, and then converted into a Python bytes type.
+
+    """Compresses the message by slicing the string by 8 bits and adding it to a list to convert to bytes
+            convert message into string of bits
+        substrings of 8 bits
+        the i index in list corresponds to the ith string of bits
+        add the extra 0s to the end of the final substring to get to 8 bits
+        run the list through bitstring_to_bytes
+        """
+    def compress_message(self, message: str) -> bytes:  
+        compress: str = ""
+        # Where to add ETB? Is ETB part of the message or do I include it in the end of the message?
+        for i in range(len(message)):
+            compress += self._encoding_map[message[i]]
+        compress += self._encoding_map[ETB_CHAR]
+        length: int = len(compress)//8
+        data: list[str] = []
+        for i in range(0, length*8, 8):
+            data.append(compress[i:i+8])
+        remaining: str = compress[(length*8):]
+        num2: int = len(remaining)
+        data.append(remaining)
+        num3: int = 8 - num2
+        num4: int = 0
+        while num4 < num3:
+            data[length] += "0"
+            num4+=1
+        return bitstrings_to_bytes(data)
         
-        [!] Uses the _encoding_map attribute generated during construction.
-        
-        Parameters:
-            message (str):
-                String representing the corpus to compress
-        
-        Returns:
-            bytes:
-                Bytes storing the compressed corpus with the Huffman coded
-                bytecode. Formatted as (1) the compressed message bytes themselves,
-                (2) terminated by the ETB_CHAR, and (3) [Optional] padding of 0
-                bits to ensure the final byte is 8 bits total.
-        
-        Example:
-            huff_coder = ReusableHuffman("ABBBCC")
-            compressed_message = huff_coder.compress_message("ABBBCC")
-            # [!] Only first 5 bits of byte 1 are meaningful (rest are padding)
-            # byte 0: 1010 0011 (100 = ETB, 101 = 'A', 0 = 'B', 11 = 'C')
-            # byte 1: 1110 0000
-            solution = bitstrings_to_bytes(['10100011', '11100000'])
-            self.assertEqual(solution, compressed_message)
-        '''
-        # [!] TODO: Complete compression!
-        return b'\x00'
     
     # Decompression
     # ---------------------------------------------------------------------------
-    
+
+    """Iterates through the bytes and converts them into a string of bits, then iterates through each 
+    bit and goes through the trie"""
     def decompress (self, compressed_msg: bytes) -> str:
+        # How to iterate through the bytes
+        # How to convert the bytes to bitstring
+    
+        message: str = ""
+        for i in compressed_msg:
+            # Does it convert it properly?
+            message+= byte_to_bitstring(i)
+
+        mesg: str = ""
+        curr: "HuffmanNode" = self.trie
+        
+        for counter in message:
+            
+            if curr.is_leaf() == True:
+                if curr.char == ETB_CHAR:
+                    return mesg
+                mesg+=curr.char
+                curr = self.trie
+            if counter == "1":
+                curr = curr.one_child
+            else:
+                curr = curr.zero_child
+            
+                
+            
+        return mesg
+    
+            
+        
         '''
         Decompresses the given bytes representing a compressed corpus into their
         original character format.
@@ -150,6 +218,6 @@ class ReusableHuffman:
             self.assertEqual("ABBBCC", huff_coder.decompress(compressed_msg))
         '''
         # [!] TODO: Complete decompression!
-        return ""
+        return 
     
         

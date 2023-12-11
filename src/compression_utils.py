@@ -74,6 +74,7 @@ class ReusableHuffman:
                 The text corpus on which to fit the ReusableHuffman instance,
                 which will be used to construct the encoding map
         '''
+        # >> [BAC] Great use of helper methods!
         self._encoding_map: dict[str, str] = dict()
         charfreq = self.char_frequency(corpus)
         self.trie: "HuffmanNode" = self.make_trie(charfreq)
@@ -84,6 +85,8 @@ class ReusableHuffman:
         # the Huffman Trie -- remember to save its root as an attribute!
         
     """Frequency dictionary of characters"""    
+    # >> [BAC] Provide proper docstrings for ALL methods, the comment should go inside the function
+    # and describe its parameters, return type and purpose. (-1).
     def char_frequency(self, str1: str) -> dict[str, int]:
         char_freq: dict = {}
         char_freq[ETB_CHAR] = 1
@@ -102,6 +105,7 @@ class ReusableHuffman:
             tree.put(node)
         """Start from ETB as root and incorporate the next node from the PQ
         """
+        # >> [BAC] Remove commented code before submission (-0.5)
         # root = HuffmanNode(ETB_CHAR, 1)
         # root.zero_child = HuffmanNode(ETB_CHAR, root.freq + tree.get().freq)
         while tree.qsize() > 1:
@@ -186,6 +190,7 @@ class ReusableHuffman:
                 curr = curr.one_child
             else:
                 curr = curr.zero_child
+        # >> [BAC] Watch all this spacing!
             
                 
             
@@ -218,6 +223,33 @@ class ReusableHuffman:
             self.assertEqual("ABBBCC", huff_coder.decompress(compressed_msg))
         '''
         # [!] TODO: Complete decompression!
+        # >> [BAC] These comments should go after the function declaration and before any code is written
+        # >> [BAC] This return will never be executed given the first return on line 197
         return 
-    
-        
+# ===================================================
+# >>> [BAC] Summary
+# A solid effort that has a lot to like, and I'd say
+# you got the main pieces of the algorithm down, but
+# just didn't have the time to test some crucial edge
+# cases that could've exposed the bugs with your
+# tie breaking mechanism. Likewise, remember to give
+# yourself time to lint your submission for stylistic
+# improvements, which are often as important as the
+# functional aspects when it comes time to technical
+# interviews and portfolio display. Onwards to the
+# next! 
+# ---------------------------------------------------
+# >>> [BAC] Style Checklist
+# [X] = Good, [~] = Mixed bag, [ ] = Needs improvement
+# 
+# [X] Variables and helper methods named and used well
+# [ ] Proper and consistent indentation and spacing
+# [~] Proper JavaDocs provided for ALL methods
+# [X] Logic is adequately simplified
+# [X] Code repetition is kept to a minimum
+# ---------------------------------------------------
+# Correctness:         92.5 / 100 (-1.5 / missed test)
+# Style Penalty:      -1.5
+# Mypy Penalty:       -5
+# Total:             86.0 / 100
+# ===================================================
